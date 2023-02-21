@@ -106,6 +106,12 @@ defrag_file_copy_loop:
 	ST    C
 	CALLF defrag_fat_entry_get
 	LD    RR3
+	; TODO: add check that follows spec better
+	; 		currently checks if (nextblock & 0xFF) != 0
+	; 		to see if end of chain when it should be
+	; 		checking to see if nextblock == 0xFFFA to determine
+	; 		doneness. If by chance its 0xFFFC that's probably
+	;		not great, but unsure at the moment how to handle
 	BNZ   defrag_file_copy_loop_done
 	LD    RR2
 	ST    B

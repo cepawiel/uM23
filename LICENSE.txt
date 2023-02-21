@@ -1,4 +1,5 @@
 (c) 2017 Dmitry Grinberg - https://dmitry.gr - dmitrygr@gmail.com
+(c) 2023 Colton Pawielski <cepawiel@mtu.edu>
 
 Free for non-commercial use under the following conditions:
 - you must credit the work and provide a link to https://dmitry.gr in your writeup or manual

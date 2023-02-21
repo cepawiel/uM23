@@ -1,0 +1,5 @@
+(c) 2017 Dmitry Grinberg - https://dmitry.gr - dmitrygr@gmail.com
+
+Free for non-commercial use under the following conditions:
+- you must credit the work and provide a link to https://dmitry.gr in your writeup or manual
+- you may not use this code for commercial purposes. If you'd like to, contact me for a difference license

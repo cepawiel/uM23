@@ -135,7 +135,7 @@ defrag_file_link_in_loop_not_last:
 	ST    RR2
 	MOV   #$00, RR3
 
-defrag_file_link_in_loop_write_fat
+defrag_file_link_in_loop_write_fat:
 	CALLF defrag_fat_entry_set
 	INC   C
 	DBNZ  B, defrag_file_link_in_loop

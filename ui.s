@@ -24,27 +24,19 @@ TOP_FILE			EQU		$14		;on screen now
 SEL_FILE			EQU		$15		;index of selected file onscreen
 
 str_no_files:
-	.byte 'N','o',' ','f','i','l','e','s',' ',' ',' ',' '
-	.byte 'f','o','u','n','d','.',' ','L','o','a','d',' '
-	.byte 's','o','m','e',' ',' ','b','e','f','o','r','e'
-	.byte 'r','u','n','n','i','n','g',' ','u','M','2','3'
-	.byte '(','c',')',' ','d','m','i','t','r','y','g','r'
+	.string 60 "No files    found. Load some  beforerunning uM23(c) dmitrygr"
 
 str_cluster:
-	.byte 'C','l','u','s','t','e','r',':',0
+	.string 9 "Cluster:"
 
 str_size:
-	.byte 'S','i','z','e',':', 0
+	.string 6 "Size:"
 
 str_file_sel_instr:
-	.byte 'A','=','g','o',' ',' ','B','=','b','a','c','k',0
+	.string 13 "A=go  B=back"
 
 str_file_fragmented:
-	.byte 'T','h','i','s',' ','f','i','l','e',' ','i','s'
-	.byte 'f','r','a','g','m','e','n','t','e','d',' ','&'
-	.byte 'c','a','n','\'','t',' ','b','e',' ','r','u','n'
-	.byte 'D','e','f','r','a','g','m','e','n','t','?',' '
-	.byte 'A','=','y','e','s',' ',' ',' ','B','=','n','o'
+	.string 60 "This file isfragmented &can't be runDefragment? A=yes   B=no"
 
 ui_main:
 	MOV   #$92, OCR			;fast
@@ -125,7 +117,7 @@ ui_draw_loop_done:
 	MOV   #0, B
 	MOV   #11, C
 clear_last_col_loop:
-	MOV   #' ', ACC
+	MOV   #$20, ACC
 	CALLF ui_draw_char_noclobber
 	INC   B
 	LD    B
@@ -332,7 +324,7 @@ ui_drawnum16_loop_has_work:
 	LD    C
 	ST    TRL
 	LD    B
-	ADD   #'0'
+	ADD   #$30
 	POP   C
 	POP   B
 	CALLF ui_draw_char_noclobber
@@ -382,7 +374,7 @@ ui_draw_item:							;assumes FLASHCTRL:TRH:TRL points to name, VRMAD2 has "is hi
 item_draw_loop:
 	.byte $50;LDF
 	BNZ   ui_char_not_zero				;replace zeroes with spaces
-	MOV   #' ', ACC
+	MOV   #$20, ACC
 ui_char_not_zero:
 	PUSH  C
 	ST    VRMAD1
@@ -393,7 +385,7 @@ ui_char_not_zero:
 	LD    VRMAD1
 	CALLF ui_draw_char_noclobber
 	LD    VRMAD1
-	BNE   #'.', item_char_not_dot
+	BNE   #$2E, item_char_not_dot
 	POP   ACC							;throw away the pushed C and replace with current
 	PUSH  C
 item_char_not_dot:
@@ -402,7 +394,7 @@ item_char_not_dot:
 	BN    TRL, 4, item_draw_loop
 										;now replace all columns on and after the last dot with spaces
 item_spaces_loop:
-	MOV   #' ', ACC
+	MOV   #$20, ACC
 	CALLF ui_draw_char_noclobber
 	INC   C
 	LD    C
@@ -560,7 +552,7 @@ no_more_dir_blocks:
 verify_file_sequential:					;in: ACC - first cluster. out acc !=0 if yes, ac == 0 is no
 	PUSH  B
 
-verify_file_sequential_loop
+verify_file_sequential_loop:
 	ST    B
 	CALLF get_next_cluster
 	BE    #$FF, verify_file_sequential_success

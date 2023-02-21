@@ -296,10 +296,9 @@ ui_frag_btn_loop:
 	JMPF  ui_btn_sel
 
 ui_defrag:
-	POP   ACC
-	CALLF defrag						;cluster number in ACC
-	JMPF  ui_btn_sel
-	
+	POP   ACC 	; put cluster number in ACC
+	JMPF defrag	; no need to call as defrag will jump back to ui_main
+				; since we need to recheck files after moving them around
 	
 
 ui_drawnum16:			;low byte in VRMAD1, high byte in ACC, B & C preset for screen coords for drawing

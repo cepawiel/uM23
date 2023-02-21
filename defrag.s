@@ -173,8 +173,11 @@ defrag_file_unlink_prev_chain_loop:
 
 defrag_file_unlink_prev_chain_loop_done:
 									;all done!
-	
-	RET
+	; this is faster than cleaing up the stack
+	; and returning since we'd need to jump back
+	; to ui_main at the caller level to 
+	; recheck files anyway
+	JMPF ui_main 	; restart the program
 
 
 

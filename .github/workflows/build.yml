@@ -1,0 +1,33 @@
+on: push
+name: Build On Push
+jobs:
+  build-uM23:
+    name: Build uM23 VMS SHA-${{ github.sha }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      # TODO: Cache Waterbear Binary or use release instead of HEAD
+      - name: Build Waterbear
+        run: |
+          cd /tmp
+          git clone https://github.com/wtetzner/waterbear
+          cd waterbear
+          cargo build --release
+          sudo mkdir -p /tools
+          sudo cp target/release/waterbear /tools/
+          echo "/tools" >> $GITHUB_PATH
+
+      - name: Build uM23
+        run: |
+          waterbear --version
+          make all
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: uM23-${{ github.sha }}
+          path: build/*

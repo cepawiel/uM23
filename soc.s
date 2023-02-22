@@ -165,16 +165,17 @@ readmem_ram1_nz_byt:
 	RET
 
 readmem_code:
-	LD    @R1					;get addr_low
-	INC   RR1					;point to addr_mid_lo
-	ST    TRL					;low byte of flash addr is ready
-	LD    @R1					;get addr_mid
-	INC   RR1					;point to addr_mid_hi
-	ADD   CODE_START_MI			;add code start address
-	ST    TRH					;mid byte of flash addr is ready
-	LD    @R1					;get addr_hi
-	ADDC  CODE_START_HI			;add code start address
-	AND   #$01
+	LD    @R1					;get addr_low						0x00
+	INC   RR1					;point to addr_mid_lo				4 -> 5
+	ADD   #$80
+	ST    TRL					;low byte of flash addr is ready	TRL = 0
+	LD    @R1					;get addr_mid						0x00
+	INC   RR1					;point to addr_mid_hi				5 -> 6
+	ADDC   CODE_START_MI		;add code start address				0x00 + 0x80 = 0x80
+	ST    TRH					;mid byte of flash addr is ready	TRH = 0x80
+	LD    @R1					;get addr_hi						0x00
+	ADDC  CODE_START_HI			;add code start address				0x00 + 0x01 = 0x01
+	AND   #$01					;									0x01 & 0x01 = 0x01
 	ST    FLSHCTRL				;address is ready
 
 readmem_ldf:					;common code for flash reading (we know we'll never overflow TRL inc since alignment)

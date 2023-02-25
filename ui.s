@@ -569,28 +569,43 @@ verify_file_sequential_fail:
 	POP   B
 	RET
 	
-
-get_next_cluster:						;in: ACC cluster, out cluster or 0xFF if none (since 0xFF is not a valid cluster number)
-	PUSH  TRL
+; get next block from flash
+; input: 	ACC = block
+; output:	ACC = next block, 0xFF if none
+get_next_cluster:
+	; store values to be restored later
+	PUSH  TRL				
 	PUSH  TRH
-	PUSH  FLSHCTRL
-	SET1  FLSHCTRL, 0
-	SET1  PSW, CY
-	ROLC
-	ST    TRL
-	AND   #$00
-	ADDC  TRH_VAL_FAT
-	ST    TRH
-	.byte $50;LDF						;high byte
-	BZ    get_next_cluster_continue		;not a valid cluster number
-	OR    #$FF
+	PUSH  FLSHCTRL			; store existing FLASH page reg
+	SET1  FLSHCTRL, 0		; select upper (DATA) flash area
+
+	; Calculate offset into Fat Block from Last Block
+	SET1  PSW, CY			; Set Carry Flag
+	ROLC					; Multiply Block x2 and add 1 from carry
+							; this is because the FatBlock is formated
+							; as uint16_t[256]. Adding 1 to the address 
+							; selects the upper byte (normally lower is 
+							; 0 due to VMU flash size)
+	ST    TRL				; Store in lower flash addr reg
+
+	AND   #$00				; Clear ACC
+	ADDC  TRH_VAL_FAT		; Add Carry from rotate to TRH_VAL_FAT
+	ST    TRH				; Write upper Table Reference Reg
+	LDF						; load flash byte into ACC
+	BZ    get_next_cluster_continue		; if upper byte == 0 then goto reading lower byte
+										; is it stores the next block positions.
+										; This is only an acceptable check as the VMU has
+										; 0-255 (0x0000-0x00FF) blocks. 0xFFFA are
+										; an end of chain, and 0xFFFC is an
+										; empty block
+	OR    #$FF					; set return value for no block found
 	JMP   get_next_cluster_out
 get_next_cluster_continue:
-	DEC   TRL
-	.byte $50;LDF						;cluster number for next block
+	DEC   TRL				; Decrement Flash Address to lower byte
+	LDF						; Read next block number into ACC
 get_next_cluster_out:
-	POP   FLSHCTRL
-	POP   TRH
+	POP   FLSHCTRL			; restore FLASH page reg
+	POP   TRH 				; restore flash address from stack
 	POP   TRL
 	RET
 

@@ -35,41 +35,46 @@ SR_BIT_Z		EQU $5
 SR_BIT_V		EQU $4
 SR_BIT_I		EQU $0
 
-;;dummy handlers for various shit
+; sets up ram values for starting the arm emulation core
 core_start:
-	SET1 VSEL, 4				;we need auto-inc on VSEL
-	MOV  #SP_START - 1, SP		;stack is full-ascending
-	MOV  #0, PSW
+	SET1 VSEL, 4				; Set Auto Increment Bit (4) in VSEL Register
+								; Causes Work RAM Address to increment on access
 
-								;now that setup is done, take the reset vector
-	AND   #$00
-	ST    WORD_VAL + 0
+	MOV  #SP_START - 1, SP		;? stack is full-ascending
+
+	MOV  #0, PSW				; Set to Ram bank 0
+								; Set Indirect Addressing to IRBK0=0, IRBK1=0
+
+								
+	AND   #$00					; Set ACC reg to 0
+	ST    WORD_VAL + 0			; Clear 4 bytes of WORD_VAL
 	ST    WORD_VAL + 1
 	ST    WORD_VAL + 2
 	ST    WORD_VAL + 3
-	ST    ARM_IRQS_LO
+	ST    ARM_IRQS_LO			; Clear IRQS
 	ST    ARM_IRQS_HI
-	ST    ARM_IRQE_LO
+	ST    ARM_IRQE_LO			; Clear IRQE
 	ST    ARM_IRQE_HI
-	MOV   #REGS_SP, C
-	MOV   #4, B
-	MOV   #WORD_VAL, ACC
-	CALLF readmem
-	MOV   #4, WORD_VAL + 0
 
-vec_take_jump:					;jump to *(uint32_t*)WORD_VAL
-	MOV   #REGS_PC, C
-	MOV   #4, B
-	MOV   #WORD_VAL, ACC
+; setup args for copying stack ptr with readmem
+	MOV   #REGS_SP, C			; dest addr of stack ptr stored in C		
+	MOV   #4, B					; size of bytes to copy (4) stored in B
+	MOV   #WORD_VAL, ACC		; src ptr stored in ACC (0x00000000)
+	CALLF readmem				
+	MOV   #4, WORD_VAL + 0		; Move source pointer to Reset Vector Address (0x00000004)
+
+vec_take_jump:					; jump to *(uint32_t*)WORD_VAL
+	MOV   #REGS_PC, C			; dest addr of regs ptr stored in C
+	MOV   #4, B					; size of bytes to copy (4) stored in B
+	MOV   #WORD_VAL, ACC		; src ptr stored in ACC (0x00000004)
 	CALLF readmem
-	CLR1  REGS_PC + 0, 0
+	CLR1  REGS_PC + 0, 0		;? clear 0 bit on PC
 
 fetch_instr_maybe_pc_changed:
-
-	LD    REGS_PC + 3			;we treat anything with top word of FF as vec return - we just do not care about the rest of it
-	BNE   #$FF, fetch_instr
-	JMPF  vector_return
-	; fallthrough
+	LD    REGS_PC + 3			; we treat anything with top word of FF as vec return - we just do not care about the rest of it
+	BNE   #$FF, fetch_instr		; if ((PC & 0xFF000000) == 0xFF000000) goto fetch_instr
+	JMPF  vector_return			; jump to vector_return
+	; Unconditional Jump wont continue here
 
 fetch_instr:					;we must arrive here with ram bank 0 selected
 
@@ -78,25 +83,25 @@ fetch_instr:					;we must arrive here with ram bank 0 selected
 	;.byte $01
 	;DBG
 
-	BP    ARM_SR, SR_BIT_I, all_irqs_processed	;not accepring IRQs? ok
-	LD    ARM_IRQS_LO
-	AND   ARM_IRQE_LO
-	BZ    lo_irqs_processed
-	MOV   #0, B
-	CALLF core_irqs_process
-	JMPF  vector_take
+	BP    ARM_SR, SR_BIT_I, all_irqs_processed	; If IRQs are enabled skip processing
+	LD    ARM_IRQS_LO							; ACC  = Low Byte Pending IRQs
+	AND   ARM_IRQE_LO							; ACC &= Low Byte Enabled IRQs
+	BZ    lo_irqs_processed						; If no IRQs pending handle upper byte
+	MOV   #0, B									; Set IRQ Base to 0 for core_irqs_process call
+	CALLF core_irqs_process						; Process IRQs (ACC = Pending IRQs, B = IRQ Base)
+	JMPF  vector_take							; Jump to Vector Handler (ACC = Vector Number)
 
 lo_irqs_processed:
-	LD    ARM_IRQS_HI
-	AND   ARM_IRQE_HI
-	BZ    all_irqs_processed
-	MOV   #8, B
-	CALLF core_irqs_process
-	JMPF  vector_take
+	LD    ARM_IRQS_HI							; ACC  = High Byte Pending IRQs
+	AND   ARM_IRQE_HI							; ACC &= High Byte Enabled IRQs
+	BZ    all_irqs_processed					; If no IRQs pending togo finished
+	MOV   #8, B									; Set IRQ Base to 8 since upper byte
+	CALLF core_irqs_process						; Process IRQs (ACC = Pending IRQs, B = IRQ Base)
+	JMPF  vector_take							; Jump to Vector Handler (ACC = Vector Number)
 	
 all_irqs_processed:
-	MOV   #WORD_VAL, C			;where to store the result
-	CALLF read_instr_16b
+	MOV   #WORD_VAL, C							; Set C to dest ptr for call
+	CALLF read_instr_16b						; call read_instr_16b
 	
 	;DBG
 	;.byte $51

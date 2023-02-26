@@ -548,25 +548,32 @@ no_more_dir_blocks:
 	RET
 
 
-verify_file_sequential:					;in: ACC - first cluster. out acc !=0 if yes, ac == 0 is no
-	PUSH  B
+; verify if all blocks of file are sequential
+; input: 	ACC = first block
+; output:	ACC == 0 if not sequential else sequential
+verify_file_sequential:
+	PUSH  B			; save B to stack
 
 verify_file_sequential_loop:
-	ST    B
-	CALLF get_next_cluster
-	BE    #$FF, verify_file_sequential_success
-	SUB   B
-	BNE   #$01, verify_file_sequential_fail
-	ADD   B
-	JMPF  verify_file_sequential_loop
+	ST    B							; store block in B
+	CALLF get_next_cluster			; Input ACC as current block
+									; Output ACC as next block
+									; 0xFF if none
+	BE    #$FF, verify_file_sequential_success	; branch if no more blocks
+	SUB   B							; calc difference between current block
+									; and next block found
+	BNE   #$01, verify_file_sequential_fail	; anything other than 1 block
+											; difference is a failure
+	ADD   B								; advance to next block
+	JMPF  verify_file_sequential_loop	; check next block
 
 verify_file_sequential_success:
-	OR    #$FF
-	POP   B
+	OR    #$FF		; set ACC to 0xFF
+	POP   B			; restore B from stack
 	RET
 verify_file_sequential_fail:
-	AND   #$00
-	POP   B
+	AND   #$00		; clear ACC
+	POP   B			; restore B from stack
 	RET
 	
 ; get next block from flash
